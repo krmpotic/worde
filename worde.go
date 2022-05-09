@@ -7,6 +7,7 @@ import (
 	"log"
 	"unicode"
 	"math/rand"
+	"sort"
 	"strings"
 	"flag"
 	"time"
@@ -14,6 +15,10 @@ import (
 
 var list []string // this stays the same
 var words []string // still possible
+var bestFirst string
+
+var flagS = flag.Int("s", 0, "number of simulations (-1 for infinite, 0 for off)")
+var flagQ = flag.Bool("q", false, "in simulation mode, just print stats")
 
 const N = 6
 
@@ -29,6 +34,8 @@ func init() {
 	if (len(words) == 0) {
 		log.Fatal("No word list")
 	}
+
+	bestFirst = best(len(words))
 }
 
 func filter(try, hint string) {
@@ -103,6 +110,13 @@ func getRunes(s string) (runes []rune) {
 	return runes
 }
 
+func initIndexList() (index []int) {
+	for i, _ := range words {
+		index = append(index, i)
+	}
+	return index
+}
+
 func best(guessesLeft int) string {
 	if len(words) == 0 {
 		log.Fatal("Out of words")
@@ -115,7 +129,7 @@ func best(guessesLeft int) string {
 	I := 0
 	best := len(list)
 	for i, guess := range list {
-		z := worst(words, getRunes(guess))
+		z := worst(initIndexList(), getRunes(guess))
 		if z < best {
 			best = z
 			I = i
@@ -125,16 +139,16 @@ func best(guessesLeft int) string {
 	return list[I]
 }
 
-func worst(words []string, runes []rune) int {
+func worst(indexes []int, runes []rune) int {
 	if len(runes) == 0 {
-		return len(words)
+		return len(indexes)
 	}
-	var left, right []string
-	for _, w := range words {
-		if !strings.ContainsRune(w, runes[len(runes)-1]) {
-			left = append(left, w)
+	var left, right []int
+	for _, i := range indexes {
+		if !strings.ContainsRune(words[i], runes[len(runes)-1]) {
+			left = append(left, i)
 		} else {
-			right = append(right, w)
+			right = append(right, i)
 		}
 	}
 	runes = runes[:len(runes)-1]
@@ -146,19 +160,36 @@ func worst(words []string, runes []rune) int {
 	return b
 }
 
+func getAvgTime(d time.Duration, i int) time.Duration {
+	return time.Duration(int64(d)/int64(i))
+}
+
+func printStats(info map[int]int, cd, ad time.Duration) {
+	var keys []int
+	for k, _ := range info {
+		keys = append(keys, k)
+	}
+	sort.Ints(keys)
+
+	fmt.Printf("[ ")
+	for _, k := range keys {
+		fmt.Printf("%d:%4d ", k, info[k])
+	}
+	fmt.Printf("] -- %10v Avg: %10v\n", cd, ad) // TODO: fix print of info-map
+}
+
 func main() {
-	var s int
-	flag.IntVar(&s, "s", 0, "number of simulations (-1 for infinite, 0 for off)")
 	flag.Parse()
 
-	if s != 0 {
+	if *flagS != 0 {
 		rand.Seed(time.Now().UnixNano())
 		info := make(map[int]int)
-		for i:=0; s == -1 || i < s; i++ {
+		startTotal := time.Now()
+		for i:=0; *flagS == -1 || i < *flagS; i++ {
 			start := time.Now()
 			g := simulate()
 			info[g]++
-			fmt.Printf("Stats: %v Time: %v\n", info, time.Since(start))
+			printStats(info, time.Since(start), getAvgTime(time.Since(startTotal), i+1))
 		}
 		return
 	}
@@ -196,11 +227,16 @@ func simulate() int {
 	words = make([]string, len(list))
 	copy(words, list)
 	for i:= 0; ; i++ {
-		best := best(666)
-		hint := genHint(goal, best)
-		filter(best, hint)
-		fmt.Printf("%s %s [%d/%d]\n", best, hint, len(words), len(list))
-		if best == goal {
+		b := bestFirst
+		if i != 0 {
+			b = best(len(words))
+		}
+		hint := genHint(goal, b)
+		filter(b, hint)
+		if !*flagQ {
+			fmt.Printf("%s %s [%d/%d]\n", b, hint, len(words), len(list))
+		}
+		if b == goal {
 			return i
 		}
 	}
