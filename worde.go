@@ -6,9 +6,13 @@ import (
 	"os"
 	"log"
 	"unicode"
+	"strings"
 )
 
-var words []string
+var list []string // this stays the same
+var words []string // still possible
+
+const N = 6
 
 func init() {
 	f, _ := os.Open("list.txt")
@@ -16,6 +20,7 @@ func init() {
 	for scanner.Scan() {
 		line := scanner.Text()
 		words = append(words, line)
+		list = append(list, line)
 	}
 
 	if (len(words) == 0) {
@@ -84,17 +89,64 @@ func ok(try, hint, word string) bool {
 	return true
 }
 
-func best() string {
+func getRunes(s string) (runes []rune) {
+	rm := make(map[rune]bool)
+	for _, r := range s {
+		rm[r] = true
+	}
+	for k, _ := range rm {
+		runes = append(runes, k)
+	}
+	return runes
+}
+
+func best(n int) string {
 	if len(words) == 0 {
 		log.Fatal("Out of words")
 	}
-	return words[0]
+
+	if (n == N || len(words) < 3) {
+		return words[0]
+	}
+
+	I := 0
+	best := len(list)
+	for i, guess := range list {
+		z := worst(words, getRunes(guess))
+		if z < best {
+			best = z
+			I = i
+		}
+	}
+
+	return list[I]
+}
+
+func worst(words []string, runes []rune) int {
+	if len(runes) == 0 {
+		return len(words)
+	}
+	var left, right []string
+	for _, w := range words {
+		if !strings.ContainsRune(w, runes[len(runes)-1]) {
+			left = append(left, w)
+		} else {
+			right = append(right, w)
+		}
+	}
+	runes = runes[:len(runes)-1]
+	a := worst(left, runes)
+	b := worst(right, runes)
+	if a > b {
+		return a
+	}
+	return b
 }
 
 func main() {
-	for i:= 0; i < 6; i++ {
+	for i:= 0; i < N; i++ {
 		var try, hint string
-		fmt.Println(best())
+		fmt.Printf("%s [%d]\n", best(i), len(words))
 		fmt.Scanf("%s %s", &try, &hint)
 		if try == hint {
 			return
