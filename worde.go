@@ -164,18 +164,18 @@ func getAvgTime(d time.Duration, i int) time.Duration {
 	return time.Duration(int64(d) / int64(i))
 }
 
-func printStats(info map[int]int, cd, ad time.Duration) {
+func printStats(n int, info map[int]int, cd, ad time.Duration) {
 	var keys []int
 	for k, _ := range info {
 		keys = append(keys, k)
 	}
 	sort.Ints(keys)
 
-	fmt.Printf("[ ")
+	fmt.Printf("#%3d [ ", n)
 	for _, k := range keys {
-		fmt.Printf("%d:%4d ", k, info[k])
+		fmt.Printf("%d:%d ", k, info[k])
 	}
-	fmt.Printf("] -- %10v Avg: %10v\n", cd, ad) // TODO: fix print of info-map
+	fmt.Printf("] -- Time: %v Avg: %v\n", cd, ad) // TODO: fix print of info-map
 }
 
 func main() {
@@ -189,7 +189,7 @@ func main() {
 			start := time.Now()
 			g := simulate()
 			info[g]++
-			printStats(info, time.Since(start), getAvgTime(time.Since(startTotal), i+1))
+			printStats(i+1, info, time.Since(start), getAvgTime(time.Since(startTotal), i+1))
 		}
 		return
 	}
