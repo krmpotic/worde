@@ -1,19 +1,19 @@
 package main
 
 import (
-	"fmt"
 	"bufio"
-	"os"
+	"flag"
+	"fmt"
 	"log"
-	"unicode"
 	"math/rand"
+	"os"
 	"sort"
 	"strings"
-	"flag"
 	"time"
+	"unicode"
 )
 
-var list []string // this stays the same
+var list []string  // this stays the same
 var words []string // still possible
 var bestFirst string
 
@@ -31,7 +31,7 @@ func init() {
 		list = append(list, line)
 	}
 
-	if (len(words) == 0) {
+	if len(words) == 0 {
 		log.Fatal("No word list")
 	}
 
@@ -39,7 +39,7 @@ func init() {
 }
 
 func filter(try, hint string) {
-	for i:= 0; i < len(words); i++ {
+	for i := 0; i < len(words); i++ {
 		if !ok(try, hint, words[i]) {
 			words = append(words[:i], words[i+1:]...)
 			i--
@@ -122,7 +122,7 @@ func best(guessesLeft int) string {
 		log.Fatal("Out of words")
 	}
 
-	if (guessesLeft == 1 || len(words) < 3) {
+	if guessesLeft == 1 || len(words) < 3 {
 		return words[0]
 	}
 
@@ -161,7 +161,7 @@ func worst(indexes []int, runes []rune) int {
 }
 
 func getAvgTime(d time.Duration, i int) time.Duration {
-	return time.Duration(int64(d)/int64(i))
+	return time.Duration(int64(d) / int64(i))
 }
 
 func printStats(info map[int]int, cd, ad time.Duration) {
@@ -185,7 +185,7 @@ func main() {
 		rand.Seed(time.Now().UnixNano())
 		info := make(map[int]int)
 		startTotal := time.Now()
-		for i:=0; *flagS == -1 || i < *flagS; i++ {
+		for i := 0; *flagS == -1 || i < *flagS; i++ {
 			start := time.Now()
 			g := simulate()
 			info[g]++
@@ -194,7 +194,7 @@ func main() {
 		return
 	}
 
-	for i:= 0; i < N; i++ {
+	for i := 0; i < N; i++ {
 		var try, hint string
 		fmt.Printf("%s [%d/%d]\n", best(N-i), len(words), len(list))
 		fmt.Scanf("%s %s", &try, &hint) // TODO: add option for hint only, which means try == best
@@ -204,7 +204,6 @@ func main() {
 		filter(try, hint)
 	}
 }
-
 
 func genHint(goal, try string) (hint string) {
 	for i, r := range try {
@@ -221,12 +220,11 @@ func genHint(goal, try string) (hint string) {
 	return hint
 }
 
-
 func simulate() int {
 	goal := list[rand.Intn(len(list))]
 	words = make([]string, len(list))
 	copy(words, list)
-	for i:= 0; ; i++ {
+	for i := 0; ; i++ {
 		b := bestFirst
 		if i != 0 {
 			b = best(len(words))
