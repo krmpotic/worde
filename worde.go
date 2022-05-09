@@ -6,7 +6,10 @@ import (
 	"os"
 	"log"
 	"unicode"
+	"math/rand"
 	"strings"
+	"flag"
+	"time"
 )
 
 var list []string // this stays the same
@@ -100,12 +103,12 @@ func getRunes(s string) (runes []rune) {
 	return runes
 }
 
-func best(n int) string {
+func best(guessesLeft int) string {
 	if len(words) == 0 {
 		log.Fatal("Out of words")
 	}
 
-	if (n == N || len(words) < 3) {
+	if (guessesLeft == 1 || len(words) < 3) {
 		return words[0]
 	}
 
@@ -144,13 +147,61 @@ func worst(words []string, runes []rune) int {
 }
 
 func main() {
+	var s int
+	flag.IntVar(&s, "s", 0, "number of simulations (-1 for infinite, 0 for off)")
+	flag.Parse()
+
+	if s != 0 {
+		rand.Seed(time.Now().UnixNano())
+		info := make(map[int]int)
+		for i:=0; s == -1 || i < s; i++ {
+			start := time.Now()
+			g := simulate()
+			info[g]++
+			fmt.Printf("Stats: %v Time: %v\n", info, time.Since(start))
+		}
+		return
+	}
+
 	for i:= 0; i < N; i++ {
 		var try, hint string
-		fmt.Printf("%s [%d]\n", best(i), len(words))
-		fmt.Scanf("%s %s", &try, &hint)
+		fmt.Printf("%s [%d/%d]\n", best(N-i), len(words), len(list))
+		fmt.Scanf("%s %s", &try, &hint) // TODO: add option for hint only, which means try == best
 		if try == hint {
 			return
 		}
 		filter(try, hint)
+	}
+}
+
+
+func genHint(goal, try string) (hint string) {
+	for i, r := range try {
+		if r == rune(goal[i]) {
+			hint += string(r)
+			continue
+		}
+		if strings.ContainsRune(goal, r) {
+			hint += string(unicode.ToLower(r))
+		} else {
+			hint += "."
+		}
+	}
+	return hint
+}
+
+
+func simulate() int {
+	goal := list[rand.Intn(len(list))]
+	words = make([]string, len(list))
+	copy(words, list)
+	for i:= 0; ; i++ {
+		best := best(666)
+		hint := genHint(goal, best)
+		filter(best, hint)
+		fmt.Printf("%s %s [%d/%d]\n", best, hint, len(words), len(list))
+		if best == goal {
+			return i
+		}
 	}
 }
