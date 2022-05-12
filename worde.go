@@ -17,8 +17,8 @@ var list []string  // this stays the same
 var words []string // still possible
 var bestFirst string
 
-var flagS = flag.Int("s", 0, "number of simulations (-1 for infinite, 0 for off)")
-var flagQ = flag.Bool("q", false, "in simulation mode, just print stats")
+var flagA = flag.Bool("a", false, "analyze the word list")
+var flagQ = flag.Bool("q", false, "in analyze mode, just print stats")
 
 const N = 6
 
@@ -36,6 +36,7 @@ func init() {
 	}
 
 	bestFirst = best(len(words))
+	fmt.Println("Best first word: ", bestFirst)
 }
 
 func filter(try, hint string) {
@@ -164,33 +165,34 @@ func getAvgTime(d time.Duration, i int) time.Duration {
 	return time.Duration(int64(d) / int64(i))
 }
 
-func printStats(n int, info map[int]int, cd, ad time.Duration) {
+func printStats(info map[int]int, time time.Duration) {
 	var keys []int
 	for k, _ := range info {
 		keys = append(keys, k)
 	}
 	sort.Ints(keys)
 
-	fmt.Printf("#%3d [ ", n)
+	fmt.Printf("[ ")
 	for _, k := range keys {
 		fmt.Printf("%d:%d ", k, info[k])
 	}
-	fmt.Printf("] -- Time: %v Avg: %v\n", cd, ad) // TODO: fix print of info-map
+	fmt.Printf("] -- Avg Time: %v\n", time) // TODO: fix print of info-map
 }
 
 func main() {
 	flag.Parse()
 
-	if *flagS != 0 {
+	if *flagA {
 		rand.Seed(time.Now().UnixNano())
 		info := make(map[int]int)
-		startTotal := time.Now()
-		for i := 0; *flagS == -1 || i < *flagS; i++ {
+		start := time.Now()
+		for i, goal := range list {
 			start := time.Now()
-			g := simulate()
+			g := analyze(goal)
+			fmt.Printf("%d/%d %q [%d] %v\n", i, len(list), goal, g, time.Since(start))
 			info[g]++
-			printStats(i+1, info, time.Since(start), getAvgTime(time.Since(startTotal), i+1))
 		}
+		printStats(info, getAvgTime(time.Since(start), len(list)))
 		return
 	}
 
@@ -220,13 +222,12 @@ func genHint(goal, try string) (hint string) {
 	return hint
 }
 
-func simulate() int {
-	goal := list[rand.Intn(len(list))]
+func analyze(goal string) int {
 	words = make([]string, len(list))
 	copy(words, list)
-	for i := 0; ; i++ {
+	for i := 1; ; i++ {
 		b := bestFirst
-		if i != 0 {
+		if i != 1 {
 			b = best(len(words))
 		}
 		hint := genHint(goal, b)
