@@ -101,13 +101,17 @@ func ok(try, hint, word string) bool {
 	return true
 }
 
-func getRunes(s string) (runes []rune) { // TODO: sort affects efficency of worst(,)
-	rm := make(map[rune]bool)
+func getRunes(s string) (runes []rune) {
 	for _, r := range s {
-		rm[r] = true
-	}
-	for k, _ := range rm {
-		runes = append(runes, k)
+		f := true
+		for _, R := range runes {
+			if r == R {
+				f = false
+			}
+		}
+		if f {
+			runes = append(runes, r)
+		}
 	}
 	return runes
 }
@@ -123,12 +127,8 @@ func best(guessesLeft int) string {
 
 	I := 0
 	best := len(list)
-	var index []int // [0,1,2,3... len(list)-1]
-	for i, _ := range words {
-		index = append(index, i)
-	}
 	for i, guess := range list {
-		z := worst(index, getRunes(guess))
+		z := worst(getRunes[guess])
 		if z < best {
 			best = z
 			I = i
@@ -142,25 +142,21 @@ func best(guessesLeft int) string {
 	return list[I]
 }
 
-func worst(indexes []int, runes []rune) int {
-	if len(runes) == 0 {
-		return len(indexes)
-	}
-	var left, right []int
-	for _, i := range indexes {
-		if !strings.ContainsRune(words[i], runes[len(runes)-1]) {
-			left = append(left, i)
-		} else {
-			right = append(right, i)
+func worst(runes []rune) (r int) {
+	a := make([]int, 1<<len(runes))
+	for _, w := range words {
+		i_ := 0
+		for i, r := range runes {
+			if strings.ContainsRune(w, r) {
+				i_ += 1<<i
+			}
+		}
+		a[i_]++
+		if r < a[i_] {
+			r = a[i_]
 		}
 	}
-	runes = runes[:len(runes)-1]
-	a := worst(left, runes)
-	b := worst(right, runes)
-	if a > b {
-		return a
-	}
-	return b
+	return
 }
 
 func getAvgTime(d time.Duration, i int) time.Duration {
