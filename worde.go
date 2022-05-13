@@ -47,6 +47,24 @@ func filter(try, hint string) {
 	}
 }
 
+func fixHint(try, hint string) (out string) {
+	m := make(map[byte]bool)
+	for i, h := range hint {
+		if h == '1' || h == '2' {
+			m[try[i]] = true
+		}
+	}
+
+	for i, h := range hint {
+		if h == '.' && m[try[i]] {
+			out += "1"
+		} else {
+			out += string(h)
+		}
+	}
+	return
+}
+
 func ok(try, hint, word string) bool {
 	for i, h := range hint[:5] {
 		W := word[i]
@@ -73,26 +91,8 @@ func ok(try, hint, word string) bool {
 				return false
 			}
 		case h == '.':
-			if T == W {
-				return false
-			}
-
-			// some implementations of the game don't repeat hints
-			// if the letter (T) is somewhere in the try already,
-			// don't delete words that contain this letter - you are left with nothing
-			skip := false
-			for i, h := range hint {
-				if (h == '1' || h == '2') && try[i] == T {
-					skip = true
-				}
-			}
-			if skip {
-				continue
-			}
-
 			for i, _ := range word {
-				W := word[i]
-				if W == T {
+				if word[i] == T {
 					return false
 				}
 			}
@@ -128,15 +128,11 @@ func best(guessesLeft int) string {
 	I := 0
 	best := len(list)
 	for i, guess := range list {
-		z := worst(getRunes[guess])
+		z := worst(getRunes(guess))
 		if z < best {
 			best = z
 			I = i
 		}
-	}
-
-	if best >= len(words) || best == 0 {
-		return words[0]
 	}
 
 	return list[I]
@@ -202,7 +198,7 @@ func main() {
 		if try == hint {
 			return
 		}
-		filter(try, hint)
+		filter(try, fixHint(try, hint))
 	}
 }
 
