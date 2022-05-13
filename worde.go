@@ -8,28 +8,21 @@ import (
 
 //go:embed list.txt
 var listTxt string
-var listEmb []string  // this stays the same
-var words []string // still possible
+var listEmb []string // this stays the same
 var bestFirst string
 
 const colorOn = true
 const numLetters = 5
 
 type Solver struct {
-	list []string
-	left []string
+	list      []string
+	left      []string
 	bestFirst string
-	first bool
+	first     bool
 }
-
 
 func init() {
 	listEmb = strings.Split(listTxt, "\n")
-	words = strings.Split(listTxt, "\n")
-
-	if len(words) == 0 {
-		log.Fatal("No word list")
-	}
 
 	s := NewSolver()
 	bestFirst = s.best(2)
@@ -50,7 +43,6 @@ func NewSolver() (s Solver) {
 
 	return
 }
-
 
 func (s *Solver) Filter(try, hint string) {
 	hint = fixHint(try, hint)

@@ -24,7 +24,10 @@ func TestAutoSolve(t *testing.T) {
 }
 
 func TestFixHint(t *testing.T) {
-	inputs := []struct{try string; hint string}{{"ABBAA","21..."},}
+	inputs := []struct {
+		try  string
+		hint string
+	}{{"ABBAA", "21..."}}
 	want := []string{"21111"}
 
 	for i, in := range inputs {
@@ -38,9 +41,9 @@ func auto(max int) (goal string, tries []string, ok bool) {
 	s := NewSolver()
 	goal = s.list[rand.Intn(len(s.list))]
 	for i := 0; i < max; i++ {
-		t := s.Best(max-i)
+		t := s.Best(max - i)
 		hint := genHint(goal, t)
-		tries = append(tries, hintColor(t,hint))
+		tries = append(tries, hintColor(t, hint))
 		if t == goal {
 			return goal, tries, true
 		}
