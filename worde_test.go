@@ -1,9 +1,7 @@
 package worde
 
 import (
-	"fmt"
 	"math/rand"
-	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -27,9 +25,8 @@ func TestAutoSolve(t *testing.T) {
 		if i == maxSolves {
 			break;
 		}
-		//fmt.Printf("%s ::: ", goal)
-		if _, ok := auto(goal, maxTries, true); !ok {
-			t.Fatalf("Couldn't guess %q in <= 6 tries\n", goal)
+		if tries, ok := auto(goal, maxTries); !ok {
+			t.Fatalf("Couldn't guess %q in <= 6 tries: %v\n", goal, tries)
 		}
 	}
 	return
@@ -49,7 +46,7 @@ func TestFixHint(t *testing.T) {
 func BenchmarkAuto(b *testing.B) {
 	const maxTries = 6
 	for i:= 0; i<b.N; i++ {
-		auto(list[rand.Intn(len(list))], maxTries, true)
+		auto(list[rand.Intn(len(list))], maxTries)
 	}
 }
 
@@ -70,26 +67,20 @@ func BenchmarkBest(b *testing.B) {
 	}
 }
 
-func auto(goal string, maxTries int, quiet bool) (tries int, ok bool) {
+func auto(goal string, max int) (tries []string, ok bool) {
 	words = make([]string, len(list))
 	copy(words, list)
-	b := bestFirst
-	for i := 0; i < maxTries; i++ {
-		hint := genHint(goal, b)
-		Filter(b, hint)
-		if b == goal {
-			if !quiet {
-			fmt.Printf("%5s%s\n", hintColor(b, hint), strings.Repeat(" ", (13)*(6-i)-5)) // result & alignment
-			}
-			return i + 1, true
+	t := bestFirst
+	for i := 0; i < max; i++ {
+		tries = append(tries, t)
+		if t == goal {
+			return tries, true
 		}
-		if !quiet {
-			fmt.Printf("%5s [%3d]  ", hintColor(b, hint), len(words))
-		}
-		b = Best(maxTries-i)
+
+		Filter(t, genHint(goal,t))
+		t = Best(max-i)
 	}
-	fmt.Println()
-	return 0, false
+	return tries, false
 }
 
 func hintColor(try, hint string) (str string) {
