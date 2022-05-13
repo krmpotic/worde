@@ -12,21 +12,12 @@ func init() {
 }
 
 func TestAutoSolve(t *testing.T) {
-	const maxSolves = 100
 	const maxTries = 6
+	const N = 10
 
-	shuffle := make([]string, len(list))
-	copy(shuffle, list)
-	rand.Shuffle(len(shuffle), func(i, j int) {
-		shuffle[i], shuffle[j] = shuffle[j], shuffle[i]
-	})
-
-	for i, goal := range shuffle {
-		if i == maxSolves {
-			break;
-		}
-		if tries, ok := auto(goal, maxTries); !ok {
-			t.Fatalf("Couldn't guess %q in <= 6 tries: %v\n", goal, tries)
+	for i := 0; i < N; i++ {
+		if goal, tries, ok := auto(maxTries); !ok {
+			t.Fatalf("Couldn't guess %q in <= %d tries: %v\n", goal, maxTries, tries)
 		}
 	}
 	return
@@ -43,44 +34,20 @@ func TestFixHint(t *testing.T) {
 	}
 }
 
-func BenchmarkAuto(b *testing.B) {
-	const maxTries = 6
-	for i:= 0; i<b.N; i++ {
-		auto(list[rand.Intn(len(list))], maxTries)
-	}
-}
-
-func BenchmarkWorst(b *testing.B) {
-	m := make(map[string][]rune, len(list))
-	for _, w := range list {
-		m[w] = getRunes(w)
-	}
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		worst(m[list[rand.Intn(len(list))]])
-	}
-}
-
-func BenchmarkBest(b *testing.B) {
-	for i :=0; i < b.N; i++ {
-		Best(2)
-	}
-}
-
-func auto(goal string, max int) (tries []string, ok bool) {
-	words = make([]string, len(list))
-	copy(words, list)
-	t := bestFirst
+func auto(max int) (goal string, tries []string, ok bool) {
+	s := NewSolver()
+	goal = s.list[rand.Intn(len(s.list))]
 	for i := 0; i < max; i++ {
-		tries = append(tries, t)
+		t := s.Best(max-i)
+		hint := genHint(goal, t)
+		tries = append(tries, hintColor(t,hint))
 		if t == goal {
-			return tries, true
+			return goal, tries, true
 		}
 
-		Filter(t, genHint(goal,t))
-		t = Best(max-i)
+		s.Filter(t, hint)
 	}
-	return tries, false
+	return goal, tries, false
 }
 
 func hintColor(try, hint string) (str string) {

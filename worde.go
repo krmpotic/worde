@@ -8,29 +8,42 @@ import (
 
 //go:embed list.txt
 var listTxt string
-
-var list []string  // this stays the same
+var listEmb []string  // this stays the same
 var words []string // still possible
 var bestFirst string
 
 const colorOn = true
 
+type Solver struct {
+	list []string
+	left []string
+}
+
+
 func init() {
-	list = strings.Split(listTxt, "\n")
+	listEmb = strings.Split(listTxt, "\n")
 	words = strings.Split(listTxt, "\n")
 
 	if len(words) == 0 {
 		log.Fatal("No word list")
 	}
-
-	bestFirst = Best(2)
 }
 
-func Filter(try, hint string) {
+func NewSolver() (s Solver) {
+	s.list = make([]string, len(listEmb))
+	copy(s.list, listEmb)
+	s.left = make([]string, len(listEmb))
+	copy(s.left, listEmb)
+
+	return
+}
+
+
+func (s *Solver) Filter(try, hint string) {
 	hint = fixHint(try, hint)
-	for i := 0; i < len(words); i++ {
-		if !ok(try, hint, words[i]) && len(words) > 0 {
-			words = append(words[:i], words[i+1:]...)
+	for i := 0; i < len(s.left); i++ {
+		if !ok(try, hint, s.left[i]) && len(s.left) > 0 {
+			s.left = append(s.left[:i], s.left[i+1:]...)
 			i--
 		}
 	}
@@ -104,28 +117,27 @@ func getRunes(s string) (runes []rune) {
 	return runes
 }
 
-func Best(guessesLeft int) string {
-	if len(words) == 0 {
-		log.Fatal("Out of words")
+func (s Solver) Best(guessesLeft int) (string) {
+	if len(s.left) == 0 {
+		return ""
 	}
 
-	if guessesLeft == 1 || len(words) < 3 {
-		return words[0]
+	if guessesLeft == 1 || len(s.left) < 3 {
+		return s.left[0]
 	}
 
 	I := 0
-	best := len(list)
-	for i, guess := range list {
-		z := worst(getRunes(guess))
-		if z < best {
-			best, I = z, i
+	score := len(s.left)
+	for i, guess := range s.list {
+		if s := Worst(s.left, getRunes(guess)); s < score {
+			score, I = s, i
 		}
 	}
 
-	return list[I]
+	return s.list[I]
 }
 
-func worst(runes []rune) (r int) {
+func Worst(words []string, runes []rune) (r int) {
 	a := make([]int, 1<<len(runes))
 	for _, w := range words {
 		i_ := 0
@@ -141,4 +153,3 @@ func worst(runes []rune) (r int) {
 	}
 	return
 }
-
