@@ -13,10 +13,13 @@ var words []string // still possible
 var bestFirst string
 
 const colorOn = true
+const numLetters = 5
 
 type Solver struct {
 	list []string
 	left []string
+	bestFirst string
+	first bool
 }
 
 
@@ -27,6 +30,13 @@ func init() {
 	if len(words) == 0 {
 		log.Fatal("No word list")
 	}
+
+	s := NewSolver()
+	bestFirst = s.best(2)
+
+	if bestFirst == "" {
+		log.Fatalf("bestFirst not initialized\n")
+	}
 }
 
 func NewSolver() (s Solver) {
@@ -34,6 +44,9 @@ func NewSolver() (s Solver) {
 	copy(s.list, listEmb)
 	s.left = make([]string, len(listEmb))
 	copy(s.left, listEmb)
+
+	s.bestFirst = bestFirst
+	s.first = true
 
 	return
 }
@@ -68,7 +81,7 @@ func fixHint(try, hint string) (out string) {
 }
 
 func ok(try, hint, word string) bool {
-	for i, h := range hint[:5] {
+	for i, h := range hint[:numLetters] {
 		W := word[i]
 		T := try[i]
 
@@ -117,7 +130,16 @@ func getRunes(s string) (runes []rune) {
 	return runes
 }
 
-func (s Solver) Best(guessesLeft int) (string) {
+func (s *Solver) Best(guessesLeft int) string {
+	if s.first {
+		s.first = false
+		return s.bestFirst
+	}
+
+	return s.best(guessesLeft)
+}
+
+func (s *Solver) best(guessesLeft int) string {
 	if len(s.left) == 0 {
 		return ""
 	}
