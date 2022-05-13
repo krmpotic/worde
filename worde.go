@@ -1,44 +1,35 @@
-package main
+package worde
 
 import (
-	"bufio"
-	"flag"
+	_ "embed"
 	"fmt"
 	"log"
-	"math/rand"
-	"os"
-	"sort"
 	"strings"
-	"time"
 )
+
+//go:embed list.txt
+var listTxt string
 
 var list []string  // this stays the same
 var words []string // still possible
 var bestFirst string
 
-var flagA = flag.Bool("a", false, "analyze the word list")
-
-const N = 6
 const colorOn = true
 
 func init() {
-	f, _ := os.Open("list.txt")
-	scanner := bufio.NewScanner(f)
-	for scanner.Scan() {
-		line := scanner.Text()
-		words = append(words, line)
-		list = append(list, line)
-	}
+	list = strings.Split(listTxt, "\n")
+	words = strings.Split(listTxt, "\n")
 
 	if len(words) == 0 {
 		log.Fatal("No word list")
 	}
 
-	bestFirst = best(2)
+	bestFirst = Best(2)
 	fmt.Println("Best first word: ", bestFirst)
 }
 
-func filter(try, hint string) {
+func Filter(try, hint string) {
+	hint = fixHint(try, hint)
 	for i := 0; i < len(words); i++ {
 		if !ok(try, hint, words[i]) && len(words) > 0 {
 			words = append(words[:i], words[i+1:]...)
@@ -82,8 +73,7 @@ func ok(try, hint, word string) bool {
 
 			have := false
 			for i, _ := range word {
-				W := word[i]
-				if W == T {
+				if word[i] == T {
 					have = true
 				}
 			}
@@ -116,7 +106,7 @@ func getRunes(s string) (runes []rune) {
 	return runes
 }
 
-func best(guessesLeft int) string {
+func Best(guessesLeft int) string {
 	if len(words) == 0 {
 		log.Fatal("Out of words")
 	}
@@ -130,8 +120,7 @@ func best(guessesLeft int) string {
 	for i, guess := range list {
 		z := worst(getRunes(guess))
 		if z < best {
-			best = z
-			I = i
+			best, I = z, i
 		}
 	}
 
@@ -144,7 +133,7 @@ func worst(runes []rune) (r int) {
 		i_ := 0
 		for i, r := range runes {
 			if strings.ContainsRune(w, r) {
-				i_ += 1<<i
+				i_ += 1 << i
 			}
 		}
 		a[i_]++
@@ -155,111 +144,3 @@ func worst(runes []rune) (r int) {
 	return
 }
 
-func getAvgTime(d time.Duration, i int) time.Duration {
-	return time.Duration(int64(d) / int64(i))
-}
-
-func printStats(info map[int]int, time time.Duration) {
-	var keys []int
-	for k, _ := range info {
-		keys = append(keys, k)
-	}
-	sort.Ints(keys)
-
-	fmt.Printf("[ ")
-	for _, k := range keys {
-		fmt.Printf("%d:%d ", k, info[k])
-	}
-	fmt.Printf("] -- Avg Time: %v\n", time) // TODO: fix print of info-map
-}
-
-func main() {
-	flag.Parse()
-
-	if *flagA {
-		rand.Seed(time.Now().UnixNano())
-		info := make(map[int]int)
-		start := time.Now()
-		for i, goal := range list {
-			start := time.Now()
-			fmt.Printf("%4d/%d %v ::: ", i, len(list), goal)
-			g := analyze(goal)
-			fmt.Printf("[%d] %v\n", g, time.Since(start))
-			info[g]++
-		}
-		printStats(info, getAvgTime(time.Since(start), len(list)))
-		return
-	}
-
-	for i := 0; i < N; i++ {
-		var try, hint string
-		fmt.Printf("%s [%d/%d]\n", best(N-i), len(words), len(list))
-		fmt.Scanf("%s %s", &try, &hint) // TODO: add option for hint only, which means try == best
-		if try == hint {
-			return
-		}
-		filter(try, fixHint(try, hint))
-	}
-}
-
-func genHint(goal, try string) (hint string) {
-	for i, r := range try {
-		switch {
-		case r == rune(goal[i]):
-			hint += "2"
-		case strings.ContainsRune(goal, r):
-			hint += "1"
-		default:
-			hint += "."
-		}
-	}
-	return hint
-}
-
-func analyze(goal string) int {
-	words = make([]string, len(list))
-	copy(words, list)
-	b := bestFirst
-	for i := 0; i < 6; i++ {
-		hint := genHint(goal, b)
-		filter(b, hint)
-		if b == goal {
-			fmt.Printf("%5s%s", hintColor(b,hint), strings.Repeat(" ", (13)*(6-i)-5)) // result & alignment
-			return i+1
-		}
-		fmt.Printf("%5s [%3d]  ", hintColor(b,hint), len(words))
-		b = best(2)
-	}
-	return -1
-}
-
-func hintColor(try, hint string) (str string) {
-	const (
-		Black   = "\033[1;30m"
-		Red     = "\033[1;31m"
-		Green   = "\033[1;32m"
-		Yellow  = "\033[1;33m"
-		Purple  = "\033[1;34m"
-		Magenta = "\033[1;35m"
-		Teal    = "\033[1;36m"
-		White   = "\033[1;37m"
-		Reset   = "\033[0m"
-	)
-
-	if !colorOn {
-		return try
-	}
-
-	for i, h := range hint {
-		T := string(try[i])
-		switch {
-		case h == '1':
-			str += Yellow + T + Reset
-		case h == '2':
-			str += Green + T + Reset
-		default:
-			str += T
-		}
-	}
-	return str
-}
