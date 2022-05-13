@@ -2,7 +2,6 @@ package worde
 
 import (
 	_ "embed"
-	"log"
 	"strings"
 )
 
@@ -14,11 +13,19 @@ var bestFirst string
 const (
 	colorOn    = true
 	numLetters = 5
-
-	hint2 = '2'
-	hint1 = '1'
-	hint0 = '.'
 )
+
+const (
+	byteHere = '2'
+	byteYes = '1'
+	byteNo = '.'
+
+	hintNo = 0
+	hintYes = 1
+	hintHere = 2
+)
+
+type hint [numLetters]int
 
 type Solver struct {
 	list      []string
@@ -29,13 +36,7 @@ type Solver struct {
 
 func init() {
 	listEmb = strings.Split(listTxt, "\n")
-
-	s := NewSolver()
-	bestFirst = s.Best(2)
-
-	if bestFirst == "" {
-		log.Fatalf("bestFirst not initialized\n")
-	}
+	bestFirst = best(listEmb,listEmb)
 }
 
 func NewSolver() (s Solver) {
@@ -44,59 +45,60 @@ func NewSolver() (s Solver) {
 	s.left = make([]string, len(listEmb))
 	copy(s.left, listEmb)
 
-	if bestFirst != "" {
-		s.bestFirst = bestFirst
-		s.first = true
-	}
+	s.bestFirst = bestFirst
+	s.first = true
 
 	return
 }
 
-func (s *Solver) Filter(try, hint string) {
-	hint = fixHint(try, hint)
+func (s *Solver) Filter(try, byte string) {
+	h := getHint(try, byte)
 	for i := 0; i < len(s.left); i++ {
-		if !ok(try, hint, s.left[i]) && len(s.left) > 0 {
+		if !ok(try, s.left[i], h) && len(s.left) > 0 {
 			s.left = append(s.left[:i], s.left[i+1:]...)
 			i--
 		}
 	}
 }
 
-func fixHint(try, hint string) (out string) {
+func getHint(try, hintStr string) (h hint) {
 	m := make(map[byte]bool)
-	for i, h := range hint {
-		if h == hint1 || h == hint2 {
+	for i, b := range hintStr {
+		if b != byteNo {
 			m[try[i]] = true
 		}
 	}
 
-	for i, h := range hint {
-		if h == hint0 && m[try[i]] {
-			out += string(hint1)
-		} else {
-			out += string(h)
+	for i, b := range hintStr {
+		switch {
+		case b == byteYes || (b == byteNo && m[try[i]]):
+			h[i] = hintYes
+		case b == byteHere:
+			h[i] = hintHere
+		case b == byteNo:
+			h[i] = hintNo
 		}
 	}
 	return
 }
 
-func ok(try, hint, word string) bool {
-	for i, h := range hint {
+func ok(try, word string, hnt hint) bool {
+	for i, h := range hnt {
 		W, T := word[i], try[i]
 
 		switch {
-		case h == hint0 && strings.ContainsRune(word, rune(T)):
+		case h == hintNo && strings.ContainsRune(word, rune(T)):
 			return false
-		case h == hint1 && (W == T || !strings.ContainsRune(word, rune(T))):
+		case h == hintYes && (W == T || !strings.ContainsRune(word, rune(T))):
 			return false
-		case h == hint2 && W != T:
+		case h == hintHere && W != T:
 			return false
 		}
 	}
 	return true
 }
 
-func (s *Solver) Best(guessesLeft int) string {
+func (s *Solver) Best(t int) string {
 	if s.first {
 		s.first = false
 		return s.bestFirst
@@ -106,20 +108,25 @@ func (s *Solver) Best(guessesLeft int) string {
 		return "" // TODO: fail better
 	}
 
-	if guessesLeft == 1 || len(s.left) < 3 {
+	if t == 1 || len(s.left) < 3 {
 		return s.left[0]
 	}
 
-	I, score := 0, len(s.left)
-	for i, guess := range s.list {
-		if s := Worst(s.left, guess); s < score {
+	return best(s.left, s.list)
+}
+
+// which guess is the best in the worst case scenario
+func best(left, list []string) string {
+	I, score := 0, len(left)
+	for i, guess := range list {
+		if s := Worst(left, guess); s < score {
 			score, I = s, i
 		}
 	}
-
-	return s.list[I]
+	return list[I]
 }
 
+// number of words left in the worst case scenario
 func Worst(words []string, guess string) (r int) {
 	a := make([]int, 1<<numLetters)
 	for _, w := range words {
