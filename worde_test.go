@@ -13,7 +13,7 @@ func init() {
 
 func TestAutoSolve(t *testing.T) {
 	const maxTries = 6
-	const N = 10
+	const N = 200
 
 	for i := 0; i < N; i++ {
 		if goal, tries, ok := auto(maxTries); !ok {

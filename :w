@@ -81,16 +81,34 @@ func fixHint(try, hint string) (out string) {
 }
 
 func ok(try, hint, word string) bool {
-	for i, h := range hint {
+	for i, h := range hint[:numLetters] {
 		W, T := word[i], try[i]
 
 		switch {
-		case h == hint0 && strings.ContainsRune(word, rune(T)):
-			return false
-		case h == hint1 && (W == T || !strings.ContainsRune(word, rune(T))):
-			return false
-		case h == hint2 && W != T:
-			return false
+		case h == hint0:
+			for i, _ := range word {
+				if word[i] == T {
+					return false
+				}
+			}
+		case h == hint1:
+			if W == T {
+				return false
+			}
+
+			have := false
+			for i, _ := range word {
+				if word[i] == T {
+					have = true
+				}
+			}
+			if !have {
+				return false
+			}
+		case h == hint2:
+			if W != T {
+				return false
+			}
 		}
 	}
 	return true
