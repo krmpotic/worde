@@ -35,6 +35,17 @@ func TestAutoSolve(t *testing.T) {
 	return
 }
 
+func TestFixHint(t *testing.T) {
+	inputs := []struct{try string; hint string}{{"ABBAA","21..."},}
+	want := []string{"21111"}
+
+	for i, in := range inputs {
+		if r := fixHint(in.try, in.hint); r != want[i] {
+			t.Fatalf("fixHint(%q,%q): want %q got %q", in.try, in.hint, want[i], r)
+		}
+	}
+}
+
 func BenchmarkAuto(b *testing.B) {
 	const maxTries = 6
 	for i:= 0; i<b.N; i++ {
@@ -42,27 +53,22 @@ func BenchmarkAuto(b *testing.B) {
 	}
 }
 
-/*
-func TestTop5(t *testing.T) {
-	m := make(map[int][]string)
-	for _, guess := range list {
-		z := worst(getRunes(guess))
-		m[z] = append(m[z], guess)
-		fmt.Println(z, guess)
+func BenchmarkWorst(b *testing.B) {
+	m := make(map[string][]rune, len(list))
+	for _, w := range list {
+		m[w] = getRunes(w)
 	}
-
-	var keys []int
-	for k, _ := range m {
-		keys = append(keys, k)
-	}
-
-	sort.Sort(sort.IntSlice(keys))
-
-	for i := 0; i < 5; i++ {
-		fmt.Println(keys[i], m[keys[i]])
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		worst(m[list[rand.Intn(len(list))]])
 	}
 }
-*/
+
+func BenchmarkBest(b *testing.B) {
+	for i :=0; i < b.N; i++ {
+		Best(2)
+	}
+}
 
 func auto(goal string, maxTries int, quiet bool) (tries int, ok bool) {
 	words = make([]string, len(list))
@@ -115,23 +121,6 @@ func hintColor(try, hint string) (str string) {
 		}
 	}
 	return str
-}
-func getAvgTime(d time.Duration, i int) time.Duration {
-	return time.Duration(int64(d) / int64(i))
-}
-
-func printStats(info map[int]int, time time.Duration) {
-	var keys []int
-	for k, _ := range info {
-		keys = append(keys, k)
-	}
-	sort.Ints(keys)
-
-	fmt.Printf("[ ")
-	for _, k := range keys {
-		fmt.Printf("%d:%d ", k, info[k])
-	}
-	fmt.Printf("] -- Avg Time: %v\n", time) // TODO: fix print of info-map
 }
 
 func genHint(goal, try string) (hint string) {
