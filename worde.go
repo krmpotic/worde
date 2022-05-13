@@ -11,8 +11,14 @@ var listTxt string
 var listEmb []string // this stays the same
 var bestFirst string
 
-const colorOn = true
-const numLetters = 5
+const (
+	colorOn    = true
+	numLetters = 5
+
+	hint2 = '2'
+	hint1 = '1'
+	hint0 = '.'
+)
 
 type Solver struct {
 	list      []string
@@ -57,13 +63,13 @@ func (s *Solver) Filter(try, hint string) {
 func fixHint(try, hint string) (out string) {
 	m := make(map[byte]bool)
 	for i, h := range hint {
-		if h == '1' || h == '2' {
+		if h == hint1 || h == hint2 {
 			m[try[i]] = true
 		}
 	}
 
 	for i, h := range hint {
-		if h == '.' && m[try[i]] {
+		if h == hint0 && m[try[i]] {
 			out += "1"
 		} else {
 			out += string(h)
@@ -78,13 +84,13 @@ func ok(try, hint, word string) bool {
 		T := try[i]
 
 		switch {
-		case h == '.':
+		case h == hint0:
 			for i, _ := range word {
 				if word[i] == T {
 					return false
 				}
 			}
-		case h == '1':
+		case h == hint1:
 			if W == T {
 				return false
 			}
@@ -98,28 +104,13 @@ func ok(try, hint, word string) bool {
 			if !have {
 				return false
 			}
-		case h == '2':
+		case h == hint2:
 			if W != T {
 				return false
 			}
 		}
 	}
 	return true
-}
-
-func getRunes(s string) (runes []rune) {
-	for _, r := range s {
-		f := true
-		for _, R := range runes {
-			if r == R {
-				f = false
-			}
-		}
-		if f {
-			runes = append(runes, r)
-		}
-	}
-	return runes
 }
 
 func (s *Solver) Best(guessesLeft int) string {
@@ -143,7 +134,7 @@ func (s *Solver) best(guessesLeft int) string {
 	I := 0
 	score := len(s.left)
 	for i, guess := range s.list {
-		if s := Worst(s.left, getRunes(guess)); s < score {
+		if s := Worst(s.left, guess); s < score {
 			score, I = s, i
 		}
 	}
@@ -151,11 +142,11 @@ func (s *Solver) best(guessesLeft int) string {
 	return s.list[I]
 }
 
-func Worst(words []string, runes []rune) (r int) {
-	a := make([]int, 1<<len(runes))
+func Worst(words []string, guess string) (r int) {
+	a := make([]int, 1<<numLetters)
 	for _, w := range words {
 		i_ := 0
-		for i, r := range runes {
+		for i, r := range guess {
 			if strings.ContainsRune(w, r) {
 				i_ += 1 << i
 			}
