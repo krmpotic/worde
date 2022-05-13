@@ -10,7 +10,6 @@ import (
 	"sort"
 	"strings"
 	"time"
-	"unicode"
 )
 
 var list []string  // this stays the same
@@ -18,9 +17,9 @@ var words []string // still possible
 var bestFirst string
 
 var flagA = flag.Bool("a", false, "analyze the word list")
-var flagQ = flag.Bool("q", false, "in analyze mode, just print stats")
 
 const N = 6
+const colorOn = true
 
 func init() {
 	f, _ := os.Open("list.txt")
@@ -35,13 +34,13 @@ func init() {
 		log.Fatal("No word list")
 	}
 
-	bestFirst = best(len(words))
+	bestFirst = best(2)
 	fmt.Println("Best first word: ", bestFirst)
 }
 
 func filter(try, hint string) {
 	for i := 0; i < len(words); i++ {
-		if !ok(try, hint, words[i]) {
+		if !ok(try, hint, words[i]) && len(words) > 0 {
 			words = append(words[:i], words[i+1:]...)
 			i--
 		}
@@ -51,47 +50,49 @@ func filter(try, hint string) {
 func ok(try, hint, word string) bool {
 	for i, h := range hint[:5] {
 		W := word[i]
+		T := try[i]
 
 		switch {
-		case unicode.IsUpper(h):
-			H := h
-			if int(W) != int(H) {
+		case h == '2':
+			if W != T {
 				return false
 			}
-		case unicode.IsLower(h):
-			H := unicode.ToUpper(h)
-
-			if int(W) == int(H) {
+		case h == '1':
+			if W == T {
 				return false
 			}
 
 			have := false
-			for _, W := range word {
-				if int(W) == int(H) {
+			for i, _ := range word {
+				W := word[i]
+				if W == T {
 					have = true
 				}
 			}
 			if !have {
 				return false
 			}
-		default:
-			T := try[i]
-			if int(T) == int(word[i]) {
+		case h == '.':
+			if T == W {
 				return false
 			}
-			// if the letter (T) is somewhere in the hint already, don't delete words that contain
-			// this letter - you are left with nothing
+
+			// some implementations of the game don't repeat hints
+			// if the letter (T) is somewhere in the try already,
+			// don't delete words that contain this letter - you are left with nothing
 			skip := false
-			for _, h := range hint {
-				if int(unicode.ToUpper(h)) == int(T) {
+			for i, h := range hint {
+				if (h == '1' || h == '2') && try[i] == T {
 					skip = true
 				}
 			}
 			if skip {
 				continue
 			}
-			for _, W := range word {
-				if int(W) == int(T) {
+
+			for i, _ := range word {
+				W := word[i]
+				if W == T {
 					return false
 				}
 			}
@@ -100,7 +101,7 @@ func ok(try, hint, word string) bool {
 	return true
 }
 
-func getRunes(s string) (runes []rune) {
+func getRunes(s string) (runes []rune) { // TODO: sort affects efficency of worst(,)
 	rm := make(map[rune]bool)
 	for _, r := range s {
 		rm[r] = true
@@ -109,13 +110,6 @@ func getRunes(s string) (runes []rune) {
 		runes = append(runes, k)
 	}
 	return runes
-}
-
-func initIndexList() (index []int) {
-	for i, _ := range words {
-		index = append(index, i)
-	}
-	return index
 }
 
 func best(guessesLeft int) string {
@@ -129,12 +123,20 @@ func best(guessesLeft int) string {
 
 	I := 0
 	best := len(list)
+	var index []int // [0,1,2,3... len(list)-1]
+	for i, _ := range words {
+		index = append(index, i)
+	}
 	for i, guess := range list {
-		z := worst(initIndexList(), getRunes(guess))
+		z := worst(index, getRunes(guess))
 		if z < best {
 			best = z
 			I = i
 		}
+	}
+
+	if best >= len(words) || best == 0 {
+		return words[0]
 	}
 
 	return list[I]
@@ -188,8 +190,9 @@ func main() {
 		start := time.Now()
 		for i, goal := range list {
 			start := time.Now()
+			fmt.Printf("%4d/%d %v ::: ", i, len(list), goal)
 			g := analyze(goal)
-			fmt.Printf("%d/%d %q [%d] %v\n", i, len(list), goal, g, time.Since(start))
+			fmt.Printf("[%d] %v\n", g, time.Since(start))
 			info[g]++
 		}
 		printStats(info, getAvgTime(time.Since(start), len(list)))
@@ -209,13 +212,12 @@ func main() {
 
 func genHint(goal, try string) (hint string) {
 	for i, r := range try {
-		if r == rune(goal[i]) {
-			hint += string(r)
-			continue
-		}
-		if strings.ContainsRune(goal, r) {
-			hint += string(unicode.ToLower(r))
-		} else {
+		switch {
+		case r == rune(goal[i]):
+			hint += "2"
+		case strings.ContainsRune(goal, r):
+			hint += "1"
+		default:
 			hint += "."
 		}
 	}
@@ -225,18 +227,47 @@ func genHint(goal, try string) (hint string) {
 func analyze(goal string) int {
 	words = make([]string, len(list))
 	copy(words, list)
-	for i := 1; ; i++ {
-		b := bestFirst
-		if i != 1 {
-			b = best(len(words))
-		}
+	b := bestFirst
+	for i := 0; i < 6; i++ {
 		hint := genHint(goal, b)
 		filter(b, hint)
-		if !*flagQ {
-			fmt.Printf("%s %s [%d/%d]\n", b, hint, len(words), len(list))
-		}
 		if b == goal {
-			return i
+			fmt.Printf("%5s%s", hintColor(b,hint), strings.Repeat(" ", (13)*(6-i)-5)) // result & alignment
+			return i+1
+		}
+		fmt.Printf("%5s [%3d]  ", hintColor(b,hint), len(words))
+		b = best(2)
+	}
+	return -1
+}
+
+func hintColor(try, hint string) (str string) {
+	const (
+		Black   = "\033[1;30m"
+		Red     = "\033[1;31m"
+		Green   = "\033[1;32m"
+		Yellow  = "\033[1;33m"
+		Purple  = "\033[1;34m"
+		Magenta = "\033[1;35m"
+		Teal    = "\033[1;36m"
+		White   = "\033[1;37m"
+		Reset   = "\033[0m"
+	)
+
+	if !colorOn {
+		return try
+	}
+
+	for i, h := range hint {
+		T := string(try[i])
+		switch {
+		case h == '1':
+			str += Yellow + T + Reset
+		case h == '2':
+			str += Green + T + Reset
+		default:
+			str += T
 		}
 	}
+	return str
 }
