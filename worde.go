@@ -2,7 +2,6 @@ package worde
 
 import (
 	_ "embed"
-	"fmt"
 	"log"
 	"strings"
 )
@@ -25,7 +24,6 @@ func init() {
 	}
 
 	bestFirst = Best(2)
-	fmt.Println("Best first word: ", bestFirst)
 }
 
 func Filter(try, hint string) {
@@ -62,9 +60,11 @@ func ok(try, hint, word string) bool {
 		T := try[i]
 
 		switch {
-		case h == '2':
-			if W != T {
-				return false
+		case h == '.':
+			for i, _ := range word {
+				if word[i] == T {
+					return false
+				}
 			}
 		case h == '1':
 			if W == T {
@@ -80,11 +80,9 @@ func ok(try, hint, word string) bool {
 			if !have {
 				return false
 			}
-		case h == '.':
-			for i, _ := range word {
-				if word[i] == T {
-					return false
-				}
+		case h == '2':
+			if W != T {
+				return false
 			}
 		}
 	}
