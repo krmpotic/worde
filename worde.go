@@ -11,7 +11,6 @@ var listEmb []string // this stays the same
 var bestFirst string
 
 const (
-	colorOn    = true
 	numLetters = 5
 )
 

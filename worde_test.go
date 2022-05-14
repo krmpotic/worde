@@ -15,28 +15,33 @@ func TestAutoSolve(t *testing.T) {
 	const maxTries = 6
 	const N = 50
 
-	for i := 0; i < N; i++ {
-		if goal, tries, ok := auto(maxTries); !ok {
-			t.Fatalf("Couldn't guess %q in <= %d tries: %v\n", goal, maxTries, tries)
+	shuffle := make([]string, len(listEmb))
+	copy(shuffle, listEmb)
+	rand.Shuffle(len(shuffle), func(i, j int) {
+		shuffle[i], shuffle[j] = shuffle[j], shuffle[i]
+	})
+
+	for i := 0; i < N && i < len(shuffle); i++ {
+		if tries, ok := auto(shuffle[i], maxTries); !ok {
+			t.Fatalf("Couldn't guess %q in <= %d tries: %v\n", shuffle[i], maxTries, tries)
 		}
 	}
 	return
 }
 
-func auto(max int) (goal string, tries []string, ok bool) {
+func auto(goal string, max int) (tries []string, ok bool) {
 	s := NewSolver()
-	goal = s.list[rand.Intn(len(s.list))]
 	for i := 0; i < max; i++ {
 		t := s.Best(max - i)
 		hint := genHint(goal, t)
 		tries = append(tries, hint)
 		if t == goal {
-			return goal, tries, true
+			return tries, true
 		}
 
 		s.Filter(t, hint)
 	}
-	return goal, tries, false
+	return tries, false
 }
 
 func genHint(goal, try string) (hint string) {
