@@ -50,8 +50,8 @@ func NewSolver() (s Solver) {
 	return
 }
 
-func (s *Solver) Filter(try, byte string) {
-	h := getHint(try, byte)
+func (s *Solver) Filter(try, hintStr string) {
+	h := getHint(try, hintStr)
 	for i := 0; i < len(s.left); i++ {
 		if !ok(try, s.left[i], h) && len(s.left) > 0 {
 			s.left = append(s.left[:i], s.left[i+1:]...)
@@ -118,7 +118,7 @@ func (s *Solver) Best(t int) string {
 func best(left, list []string) string {
 	I, score := 0, len(left)
 	for i, guess := range list {
-		if s := Worst(left, guess); s < score {
+		if s := worst(left, guess); s < score {
 			score, I = s, i
 		}
 	}
@@ -126,7 +126,7 @@ func best(left, list []string) string {
 }
 
 // number of words left in the worst case scenario
-func Worst(words []string, guess string) (r int) {
+func worst(words []string, guess string) (r int) {
 	a := make([]int, 1<<numLetters)
 	for _, w := range words {
 		i_ := 0
