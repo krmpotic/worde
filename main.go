@@ -17,6 +17,10 @@ func main() {
 
 	for i := 0; i < N; i++ {
 		b := s.Best(N - i)
+		if b == "" {
+			fmt.Println("Out of words.")
+			return
+		}
 		fmt.Println(b)
 	tryAgain:
 		try, hint, err := userInput(r, b)
