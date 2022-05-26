@@ -7,17 +7,16 @@ import (
 
 //go:embed list.txt
 var listTxt string
-var listEmb []string // this stays the same
-var bestFirst string
+var list []string // this stays the same
 
 const (
 	numLetters = 5
 )
 
 const (
-	byteHere = '2'
-	byteYes  = '1'
 	byteNo   = '.'
+	byteYes  = '1'
+	byteHere = '2'
 
 	codeNo   = 0
 	codeYes  = 1
@@ -25,10 +24,7 @@ const (
 )
 
 type Solver struct {
-	list      []string
 	left      []string
-	bestFirst string
-	first     bool
 }
 
 type Hint struct {
@@ -37,18 +33,12 @@ type Hint struct {
 }
 
 func init() {
-	listEmb = strings.Split(listTxt, "\n")
-	bestFirst = best(listEmb, listEmb)
+	list = strings.Split(listTxt, "\n")
 }
 
 func NewSolver() (s Solver) {
-	s.list = make([]string, len(listEmb))
-	copy(s.list, listEmb)
-	s.left = make([]string, len(listEmb))
-	copy(s.left, listEmb)
-
-	s.bestFirst = bestFirst
-	s.first = true
+	s.left = make([]string, len(list))
+	copy(s.left, list)
 
 	return
 }
@@ -64,7 +54,6 @@ func (s *Solver) Filter(try, codeStr string) {
 }
 
 func getHint(try, codeStr string) (Hint) {
-	c := [numLetters]int{}
 	m := make(map[byte]bool)
 	for i, b := range codeStr {
 		if b != byteNo {
@@ -72,9 +61,13 @@ func getHint(try, codeStr string) (Hint) {
 		}
 	}
 
+	c := [numLetters]int{}
 	for i, b := range codeStr {
 		switch {
 		case b == byteYes || (b == byteNo && m[try[i]]):
+			// interpret partial input correctly
+			// e.g. AREAS: 1.... becomes 1..1.
+			// the rest of the code relies on it
 			c[i] = codeYes
 		case b == byteHere:
 			c[i] = codeHere
@@ -102,35 +95,30 @@ func wordOk(word string, h Hint) bool {
 }
 
 func (s *Solver) Best(t int) string {
-	if s.first {
-		s.first = false
-		return s.bestFirst
-	}
-
 	if len(s.left) == 0 {
-		return "" // TODO: fail better
+		return ""
 	}
 
 	if t == 1 || len(s.left) < 3 {
 		return s.left[0]
 	}
 
-	return best(s.left, s.list)
+	return best(s.left)
 }
 
 // which guess is the best in the worst case scenario
-func best(left, list []string) string {
-	I, score := 0, len(left)
-	for i, guess := range list {
+func best(left []string) (word string) {
+	score := len(left)
+	for _, guess := range list {
 		if s := worst(left, guess); s < score {
-			score, I = s, i
+			word, score = guess, s
 		}
 	}
-	return list[I]
+	return
 }
 
 // number of words left in the worst case scenario
-func worst(words []string, guess string) (r int) {
+func worst(words []string, guess string) (score int) {
 	a := make([]int, 1<<numLetters)
 	for _, w := range words {
 		i_ := 0
@@ -139,9 +127,9 @@ func worst(words []string, guess string) (r int) {
 				i_ += 1 << i
 			}
 		}
-		if a[i_]++; r < a[i_] {
-			r = a[i_]
+		if a[i_]++; a[i_] > score {
+			score = a[i_]
 		}
 	}
-	return r
+	return score
 }
