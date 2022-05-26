@@ -11,6 +11,24 @@ const (
 	N = 6
 )
 
+type limitPrint []string
+func (lp limitPrint) String() (s string) {
+	const max = 10
+	s += "["
+	for i, w := range lp {
+		if i >= max {
+			s += fmt.Sprintf(" +%d", len(lp)-max)
+			break
+		}
+		if i != 0 {
+			s += ", "
+		}
+		s += w
+	}
+	s += "]"
+	return s
+}
+
 func main() {
 	s := NewSolver()
 	r := bufio.NewReader(os.Stdin)
@@ -21,13 +39,14 @@ func main() {
 			fmt.Println("Out of words.")
 			return
 		}
-		fmt.Println(b)
-	tryAgain:
+		fmt.Printf("  %s %s\n", b, limitPrint(s.left))
+
 		try, hint, err := userInput(r, b)
 		if err != nil {
 			fmt.Printf("userInput: %s\n", err)
-			goto tryAgain
+			continue
 		}
+
 		s.Filter(try, hint)
 	}
 }
