@@ -19,18 +19,21 @@ const (
 	byteYes  = '1'
 	byteNo   = '.'
 
-	hintNo   = 0
-	hintYes  = 1
-	hintHere = 2
+	codeNo   = 0
+	codeYes  = 1
+	codeHere = 2
 )
-
-type hint [numLetters]int
 
 type Solver struct {
 	list      []string
 	left      []string
 	bestFirst string
 	first     bool
+}
+
+type Hint struct {
+	try string
+	code [numLetters]int
 }
 
 func init() {
@@ -50,47 +53,48 @@ func NewSolver() (s Solver) {
 	return
 }
 
-func (s *Solver) Filter(try, hintStr string) {
-	h := getHint(try, hintStr)
+func (s *Solver) Filter(try, codeStr string) {
+	h := getHint(try, codeStr)
 	for i := 0; i < len(s.left); i++ {
-		if !ok(try, s.left[i], h) && len(s.left) > 0 {
+		if !wordOk(s.left[i], h) {
 			s.left = append(s.left[:i], s.left[i+1:]...)
 			i--
 		}
 	}
 }
 
-func getHint(try, hintStr string) (h hint) {
+func getHint(try, codeStr string) (Hint) {
+	c := [numLetters]int{}
 	m := make(map[byte]bool)
-	for i, b := range hintStr {
+	for i, b := range codeStr {
 		if b != byteNo {
 			m[try[i]] = true
 		}
 	}
 
-	for i, b := range hintStr {
+	for i, b := range codeStr {
 		switch {
 		case b == byteYes || (b == byteNo && m[try[i]]):
-			h[i] = hintYes
+			c[i] = codeYes
 		case b == byteHere:
-			h[i] = hintHere
+			c[i] = codeHere
 		case b == byteNo:
-			h[i] = hintNo
+			c[i] = codeNo
 		}
 	}
-	return
+	return Hint{try: try, code: c}
 }
 
-func ok(try, word string, hnt hint) bool {
-	for i, h := range hnt {
-		W, T := word[i], try[i]
+func wordOk(word string, h Hint) bool {
+	for i, c := range h.code {
+		W, T := word[i], h.try[i]
 
 		switch {
-		case h == hintNo && strings.ContainsRune(word, rune(T)):
+		case c == codeNo && strings.ContainsRune(word, rune(T)):
 			return false
-		case h == hintYes && (W == T || !strings.ContainsRune(word, rune(T))):
+		case c == codeYes && (W == T || !strings.ContainsRune(word, rune(T))):
 			return false
-		case h == hintHere && W != T:
+		case c == codeHere && W != T:
 			return false
 		}
 	}
@@ -139,5 +143,5 @@ func worst(words []string, guess string) (r int) {
 			r = a[i_]
 		}
 	}
-	return
+	return r
 }
