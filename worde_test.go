@@ -1,4 +1,4 @@
-package worde
+package main
 
 import (
 	"math/rand"

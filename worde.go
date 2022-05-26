@@ -1,4 +1,4 @@
-package worde
+package main
 
 import (
 	_ "embed"
@@ -16,11 +16,11 @@ const (
 
 const (
 	byteHere = '2'
-	byteYes = '1'
-	byteNo = '.'
+	byteYes  = '1'
+	byteNo   = '.'
 
-	hintNo = 0
-	hintYes = 1
+	hintNo   = 0
+	hintYes  = 1
 	hintHere = 2
 )
 
@@ -35,7 +35,7 @@ type Solver struct {
 
 func init() {
 	listEmb = strings.Split(listTxt, "\n")
-	bestFirst = best(listEmb,listEmb)
+	bestFirst = best(listEmb, listEmb)
 }
 
 func NewSolver() (s Solver) {
